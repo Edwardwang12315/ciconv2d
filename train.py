@@ -126,8 +126,8 @@ def train():
     basenet = basenet_factory(args.model)
     dsfd_net = build_net('train', cfg.NUM_CLASSES, args.model)
     net = dsfd_net
-    net_enh = RetinexNet()
-    net_enh.load_state_dict(torch.load(args.save_folder + 'decomp.pth'))
+    # net_enh = RetinexNet()
+    # net_enh.load_state_dict(torch.load(args.save_folder + 'decomp.pth'))
 
     # 中断恢复
     if args.resume:
@@ -182,12 +182,12 @@ def train():
         if args.multigpu:
             # 采用数据并行模型，多gpu
             net = torch.nn.parallel.DistributedDataParallel(net.cuda(), find_unused_parameters=True)
-            net_enh = torch.nn.parallel.DistributedDataParallel(net_enh.cuda())
+            # net_enh = torch.nn.parallel.DistributedDataParallel(net_enh.cuda())
         # net = net.cuda()
         cudnn.benckmark = True
 
     criterion = MultiBoxLoss(cfg, args.cuda)
-    criterion_enhance = EnhanceLoss()
+    # criterion_enhance = EnhanceLoss()
     if local_rank == 0:
         print('Loading wider dataset...')
         print('Using the specified args:')
@@ -197,17 +197,17 @@ def train():
         if iteration > step:
             step_index += 1
             adjust_learning_rate(optimizer, args.gamma, step_index)
-    net_enh.eval()
+    # net_enh.eval()
     net.train()
-    corr_mat = None
+    # corr_mat = None
     for epoch in range(start_epoch, cfg.EPOCHES):
         losses = 0
         loss_l1 = 0
         loss_c1 = 0
         loss_l2 = 0
         loss_c2 = 0
-        loss_mu = 0
-        loss_en = 0
+        # loss_mu = 0
+        # loss_en = 0
 
         for batch_idx, (images, targets, _) in enumerate(train_loader):
             # print( len( train_loader ) )
@@ -230,7 +230,7 @@ def train():
                 adjust_learning_rate(optimizer, args.gamma, step_index)
 
             # 前向传播两个分支
-            t0 = time.time()
+            # t0 = time.time()
             # R_dark_gt, I_dark = net_enh(img_dark)
             # R_light_gt, I_light = net_enh(images)
 
@@ -260,7 +260,7 @@ def train():
             loss.backward()
             torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=35, norm_type=2)
             optimizer.step()
-            t1 = time.time()
+            # t1 = time.time()
             losses += loss.item()
             loss_l1 += loss_l_pa1l.item()
             loss_c1 += loss_c_pal1.item()
@@ -275,11 +275,11 @@ def train():
                 tloss_c1 = loss_c1 / (batch_idx + 1)
                 tloss_l2 = loss_l2 / (batch_idx + 1)
                 tloss_c2 = loss_c2 / (batch_idx + 1)
-                tloss_mu = loss_mu / (batch_idx + 1)
-                tloss_en = loss_en / (batch_idx + 1)
+                # tloss_mu = loss_mu / (batch_idx + 1)
+                # tloss_en = loss_en / (batch_idx + 1)
                 
                 if local_rank == 0:
-                    print( 'Timer: %.4f' % (t1 - t0) )
+                    # print( 'Timer: %.4f' % (t1 - t0) )
                     print( 'epoch:' + repr( epoch ) + ' || iter:' + repr( iteration ) + ' || Loss:%.4f' % (tloss) )
                     print( '->> pal1 conf loss:{:.4f} || pal1 loc loss:{:.4f}'.format( tloss_c1 , tloss_l1 ) )
                     print( '->> pal2 conf loss:{:.4f} || pal2 loc loss:{:.4f}'.format( tloss_c2 , tloss_l2 ) )
@@ -304,8 +304,8 @@ def val(epoch, net, dsfd_net, net_enh, criterion):
     net.eval()
     step = 0
     losses = torch.tensor(0.).cuda()
-    losses_enh = torch.tensor(0.).cuda()
-    t1 = time.time()
+    # losses_enh = torch.tensor(0.).cuda()
+    # t1 = time.time()
 
     for batch_idx, (images, targets, img_paths) in enumerate(val_loader):
         if args.cuda:
@@ -329,9 +329,9 @@ def val(epoch, net, dsfd_net, net_enh, criterion):
     dist.reduce(losses, 0, op=dist.ReduceOp.SUM)
 
     tloss = losses / step / torch.cuda.device_count()
-    t2 = time.time()
+    # t2 = time.time()
     if local_rank == 0:
-        print('Timer: %.4f' % (t2 - t1))
+        # print('Timer: %.4f' % (t2 - t1))
         print('test epoch:' + repr(epoch) + ' || Loss:%.4f' % (tloss))
 
     global min_loss
