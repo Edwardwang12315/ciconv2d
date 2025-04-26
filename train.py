@@ -295,7 +295,7 @@ def train():
             iteration += 1
         # if local_rank == 0:
         if (epoch + 1) >= 0:
-            val(epoch, net, dsfd_net, net_enh, criterion)
+            val(epoch, net, dsfd_net, net_enh=None, criterion=criterion)
         if iteration >= cfg.MAX_STEPS:
             break
 
